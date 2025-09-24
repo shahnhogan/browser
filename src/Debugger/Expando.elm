@@ -420,9 +420,7 @@ viewTinyHelp str =
 
 elideMiddle : String -> String
 elideMiddle str =
-  if String.length str <= 18
-  then str
-  else String.left 8 str ++ "..." ++ String.right 8 str
+  identity
 
 
 
