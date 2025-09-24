@@ -34,17 +34,17 @@ import VirtualDom as V
 
 minimumPanelSize : Int
 minimumPanelSize =
-  150
+  600
 
 
 initialWindowWidth : Int
 initialWindowWidth =
-  900
+  1200
 
 
 initialWindowHeight : Int
 initialWindowHeight =
-  420
+  800
 
 
 
