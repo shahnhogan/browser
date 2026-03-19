@@ -805,9 +805,27 @@ viewExpando expandoMsg expandoModel layout =
     , style "-ms-user-select" block
     , style "user-select" block
     ]
-    [ div [ style "color" "#ccc", style "padding" "0 0 1em 0" ] [ text "-- MESSAGE" ]
+    [ div
+        [ style "color" "#ccc"
+        , style "padding" "0 0 1em 0"
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "gap" "8px"
+        ]
+        [ text "-- MESSAGE"
+        , Html.map TweakExpandoMsg (Expando.viewSearch expandoMsg)
+        ]
     , Html.map TweakExpandoMsg <| Expando.view [] expandoMsg
-    , div [ style "color" "#ccc", style "padding" "1em 0" ] [ text "-- MODEL" ]
+    , div
+        [ style "color" "#ccc"
+        , style "padding" "1em 0"
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "gap" "8px"
+        ]
+        [ text "-- MODEL"
+        , Html.map TweakExpandoModel (Expando.viewSearch expandoModel)
+        ]
     , Html.map TweakExpandoModel <| Expando.view [] expandoModel
     ]
 

@@ -5,14 +5,15 @@ module Debugger.Expando exposing
   , merge
   , update
   , view
+  , viewSearch
   )
 
 
 import Dict exposing (Dict)
 import Elm.Kernel.Debugger
-import Html exposing (Html, div, span, text)
-import Html.Attributes exposing (class, style)
-import Html.Events exposing (onClick)
+import Html exposing (Html, div, input, span, text)
+import Html.Attributes exposing (attribute, class, placeholder, style, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Json.Decode as Json
 import Set exposing (Set)
 
@@ -25,6 +26,7 @@ type alias Expando =
   { unexpanded : Unexpanded
   , expanded : Set Path
   , viewMore : Dict Path Int
+  , search : String
   }
 
 
@@ -77,6 +79,7 @@ init value =
   { unexpanded = Elm.Kernel.Debugger.toUnexpanded value
   , expanded = Set.singleton []
   , viewMore = Dict.empty
+  , search = ""
   }
 
 
@@ -96,6 +99,7 @@ merge value expando =
 type Msg
   = Toggle Path
   | ViewMore Path
+  | UpdateSearch String
 
 
 update : Msg -> Expando -> Expando
@@ -114,6 +118,9 @@ update msg expando =
     ViewMore path ->
       { expando | viewMore = Dict.update path updateViewMoreCount expando.viewMore }
 
+    UpdateSearch search ->
+      { expando | search = search }
+
 
 updateViewMoreCount : Maybe Int -> Maybe Int
 updateViewMoreCount maybeCount =
@@ -123,6 +130,20 @@ updateViewMoreCount maybeCount =
 
     Nothing ->
       Just 2
+
+
+
+-- SEARCH HELPERS
+
+
+isSearchActive : Expando -> Bool
+isSearchActive expando =
+  not (String.isEmpty expando.search)
+
+
+matchesSearch : String -> String -> Bool
+matchesSearch search field =
+  String.contains (String.toLower search) (String.toLower field)
 
 
 
@@ -165,7 +186,7 @@ viewSequence path seqType expando valueList =
 
     maybeKey = List.head path
 
-    isClosed = not (Set.member path expando.expanded)
+    isClosed = not (isSearchActive expando) && not (Set.member path expando.expanded)
   in
   div (leftPad maybeKey)
     [ div [ onClick (Toggle path) ] (lineStarter maybeKey (Just isClosed) [ text starter ])
@@ -211,7 +232,7 @@ viewDictionary path expando keyValuePairs =
 
     maybeKey = List.head path
 
-    isClosed = not (Set.member path expando.expanded)
+    isClosed = not (isSearchActive expando) && not (Set.member path expando.expanded)
   in
   div (leftPad maybeKey)
     [ div [ onClick (Toggle path) ] (lineStarter maybeKey (Just isClosed) [ text starter ])
@@ -271,7 +292,7 @@ viewRecord path expando record =
   let
     maybeKey = List.head path
 
-    isClosed = not (Set.member path expando.expanded)
+    isClosed = not (isSearchActive expando) && not (Set.member path expando.expanded)
 
     (start, middle, end) =
       if isClosed then
@@ -288,7 +309,14 @@ viewRecord path expando record =
 
 viewRecordOpen : Path -> Expando -> Dict String Unexpanded -> Html Msg
 viewRecordOpen path expando record =
-  div [] (List.map (viewRecordEntry path expando) (Dict.toList record))
+  let
+    entries =
+      if String.isEmpty expando.search then
+        Dict.toList record
+      else
+        List.filter (\( field, _ ) -> matchesSearch expando.search field) (Dict.toList record)
+  in
+  div [] (List.map (viewRecordEntry path expando) entries)
 
 
 viewRecordEntry : Path -> Expando -> ( String, Unexpanded ) -> Html Msg
@@ -305,7 +333,7 @@ viewConstructor path maybeName expando valueList =
   let
     maybeKey = List.head path
 
-    isClosed = not (Set.member path expando.expanded)
+    isClosed = not (isSearchActive expando) && not (Set.member path expando.expanded)
 
     tinyArgs = List.map (Tuple.second << viewExtraTiny) valueList
 
@@ -553,3 +581,26 @@ blue =
 purple : Html.Attribute msg
 purple =
   style "color" "rgb(136, 19, 145)"
+
+
+
+-- SEARCH
+
+
+viewSearch : Expando -> Html Msg
+viewSearch expando =
+  input
+    [ type_ "text"
+    , placeholder "Search fields..."
+    , value expando.search
+    , onInput UpdateSearch
+    , attribute "aria-label" "Search fields"
+    , style "border" "1px solid #ccc"
+    , style "padding" "4px 8px"
+    , style "font-family" "monospace"
+    , style "font-size" "12px"
+    , style "outline" "none"
+    , style "border-radius" "3px"
+    , style "width" "150px"
+    ]
+    []
