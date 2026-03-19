@@ -16,6 +16,7 @@ import Html.Attributes exposing (attribute, class, placeholder, style, type_, va
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Json
 import Set exposing (Set)
+import Html.Attributes exposing (id)
 
 
 
@@ -144,6 +145,22 @@ isSearchActive expando =
 matchesSearch : String -> String -> Bool
 matchesSearch search field =
   String.contains (String.toLower search) (String.toLower field)
+
+
+valueMatchesSearch : String -> Unexpanded -> Bool
+valueMatchesSearch search unexpanded =
+  case Elm.Kernel.Debugger.init unexpanded of
+    S stringRep ->
+      matchesSearch search stringRep
+
+    Primitive stringRep ->
+      matchesSearch search stringRep
+
+    Constructor (Just name) _ ->
+      matchesSearch search name
+
+    _ ->
+      False
 
 
 
@@ -314,7 +331,7 @@ viewRecordOpen path expando record =
       if String.isEmpty expando.search then
         Dict.toList record
       else
-        List.filter (\( field, _ ) -> matchesSearch expando.search field) (Dict.toList record)
+        List.filter (\( field, val ) -> matchesSearch expando.search field || valueMatchesSearch expando.search val) (Dict.toList record)
   in
   div [] (List.map (viewRecordEntry path expando) entries)
 
@@ -591,7 +608,7 @@ viewSearch : Expando -> Html Msg
 viewSearch expando =
   input
     [ type_ "text"
-    , placeholder "Search fields..."
+    , placeholder "Search..."
     , value expando.search
     , onInput UpdateSearch
     , attribute "aria-label" "Search fields"
@@ -602,5 +619,6 @@ viewSearch expando =
     , style "outline" "none"
     , style "border-radius" "3px"
     , style "width" "150px"
+    , attribute "data-id" "debugger-search"
     ]
     []
